@@ -17,6 +17,7 @@ namespace Huoyaoyuan.KCVPlugins.PoiDBReporter
     [ExportMetadata("Author", "@huoyaoyuan")]
     class PoiDBReporter : IToolPlugin
     {
+        private Reporter reporter = new Reporter();
         public string ToolName { get; } = "PoiDBReporter";
 
         public object GetSettingsView()
@@ -26,7 +27,7 @@ namespace Huoyaoyuan.KCVPlugins.PoiDBReporter
 
         public object GetToolView()
         {
-            return new ReporterView();
+            return new ReporterView { DataContext = reporter };
         }
     }
 }
