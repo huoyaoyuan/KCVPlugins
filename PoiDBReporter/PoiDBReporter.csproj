@@ -7,7 +7,7 @@
     <ProjectGuid>{15F95490-F82C-49F9-AE76-4D8ED35F0FD1}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>PoiDBReporter</RootNamespace>
+    <RootNamespace>Huoyaoyuan.KCVPlugins.PoiDBReporter</RootNamespace>
     <AssemblyName>PoiDBReporter</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
