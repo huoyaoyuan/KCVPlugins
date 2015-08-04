@@ -1,0 +1,2 @@
+# KCVPlugins
+Plugins for KanColleViewer
