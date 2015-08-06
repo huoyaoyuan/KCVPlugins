@@ -16,6 +16,7 @@ namespace Huoyaoyuan.KCVPlugins.PoiDBReporter
     {
         public bool EnableReporter { get; set; } = true;
         private readonly string SERVER_HOSTNAME = "poi.0u0.moe";
+        private readonly string UAString = "KCV Plugin Test";
 
         #region Serializer
         DataContractJsonSerializer CreateItemSerializer = new DataContractJsonSerializer(typeof(CreateItem));
@@ -26,6 +27,33 @@ namespace Huoyaoyuan.KCVPlugins.PoiDBReporter
             var proxy = KanColleClient.Current.Proxy;
             proxy.api_req_kousyou_createitem.TryParse<kcsapi_createitem>().Subscribe(x => this.CreateItemEvent(x.Data, x.Request));
         }
+
+        private async void ReportAsync(object v, DataContractJsonSerializer Serializer,string APIName)
+        {
+            HttpWebRequest wrq = WebRequest.Create($"http://{SERVER_HOSTNAME}/api/report/v2/{APIName}") as HttpWebRequest;
+            wrq.UserAgent = UAString;
+            wrq.Method = "POST";
+            using (System.IO.MemoryStream mms = new System.IO.MemoryStream())
+            {
+                byte[] data = Encoding.UTF8.GetBytes("data=");
+                mms.Write(data, 0, data.Length);
+                CreateItemSerializer.WriteObject(mms, v);
+                wrq.ContentLength = mms.Length;
+                mms.Seek(0, System.IO.SeekOrigin.Begin);
+                using (System.IO.Stream reqs = wrq.GetRequestStream())
+                    mms.CopyTo(reqs);
+            }
+            wrq.ContentType = "text/plain-text";
+            try
+            {
+                using (var wrs = await wrq.GetResponseAsync()) { }
+            }
+            catch(Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(ex.Message);
+            }
+        }
+
         void CreateItemEvent(kcsapi_createitem api,NameValueCollection request)
         {
             if (EnableReporter)
@@ -40,26 +68,8 @@ namespace Huoyaoyuan.KCVPlugins.PoiDBReporter
                 res.successful = (api.api_create_flag != 0);
                 res.teitokuLv = KanColleClient.Current.Homeport.Admiral.Level;
                 res.itemId = res.successful ? api.api_slot_item.api_slotitem_id : int.Parse(api.api_fdata.Split(',')[1]);
-                res.origin = "KCV Plugin Test";
-                HttpWebRequest wrq = WebRequest.Create($"http://{SERVER_HOSTNAME}/api/report/v2/create_item") as HttpWebRequest;
-                System.IO.MemoryStream mms = new System.IO.MemoryStream();
-                wrq.UserAgent = "KCV Plugin Test";
-                wrq.Method = "POST";
-                byte[] data = Encoding.UTF8.GetBytes("data=");
-                mms.Write(data,0,data.Length);
-                CreateItemSerializer.WriteObject(mms, res);
-                wrq.ContentLength = mms.Length;
-                mms.Seek(0, System.IO.SeekOrigin.Begin);
-                mms.CopyTo(wrq.GetRequestStream());
-                wrq.GetRequestStream().Close();
-                System.Diagnostics.Debug.Write(Encoding.UTF8.GetString(mms.ToArray()));
-                wrq.ContentType = "text/plain-text";
-                using (var wrs = wrq.GetResponse())
-                {
-                    HttpWebResponse httprs = wrs as HttpWebResponse;
-                    System.Diagnostics.Debugger.Break();
-                }
-                GC.Collect(2);
+                res.origin = UAString;
+                ReportAsync(res, CreateItemSerializer, "create_item");
             }
         }
     }
