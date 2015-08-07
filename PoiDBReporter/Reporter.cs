@@ -17,7 +17,12 @@ namespace Huoyaoyuan.KCVPlugins.PoiDBReporter
     {
         public bool EnableReporter { get; set; } = true;
         private readonly string SERVER_HOSTNAME = "poi.0u0.moe";
-        private readonly string UAString = "KCV Plugin Test";
+        private readonly string UAString =
+#if DEBUG
+            "KCV Plugin Test";
+#else
+            "KCV Plugin v1.0";
+#endif
         private bool WaitForKDock = false;
         private CreateShip createship;
         private kcsapi_mst_mapinfo[] mapinfo;
