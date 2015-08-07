@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.Serialization.Json;
 
 namespace Huoyaoyuan.KCVPlugins.PoiDBReporter.Models
 {
@@ -12,5 +11,16 @@ namespace Huoyaoyuan.KCVPlugins.PoiDBReporter.Models
         public int teitokuLv;
         public bool successful;
         public string origin;
+    }
+    [Serializable]
+    struct CreateShip
+    {
+        public int[] items;
+        public int kdockId;
+        public int secretary;
+        public int shipId;
+        public int highspeed;
+        public int teitokuLv;
+        public bool largeFlag;
     }
 }
