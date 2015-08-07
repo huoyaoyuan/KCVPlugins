@@ -9,6 +9,7 @@ using Grabacr07.KanColleWrapper.Models.Raw;
 using Huoyaoyuan.KCVPlugins.PoiDBReporter.Models;
 using System.Runtime.Serialization.Json;
 using System.Net;
+using System.Reactive.Linq;
 
 namespace Huoyaoyuan.KCVPlugins.PoiDBReporter
 {
@@ -19,10 +20,14 @@ namespace Huoyaoyuan.KCVPlugins.PoiDBReporter
         private readonly string UAString = "KCV Plugin Test";
         private bool WaitForKDock = false;
         private CreateShip createship;
+        private kcsapi_mst_mapinfo[] mapinfo;
+        private DropShip dropship;
+        private bool WaitForBattleResult = false;
 
         #region Serializer
         DataContractJsonSerializer CreateItemSerializer = new DataContractJsonSerializer(typeof(CreateItem));
         DataContractJsonSerializer CreateShipSerializer = new DataContractJsonSerializer(typeof(CreateShip));
+        DataContractJsonSerializer DropShipSerializer = new DataContractJsonSerializer(typeof(DropShip));
         #endregion
 
         public Reporter()
@@ -31,9 +36,17 @@ namespace Huoyaoyuan.KCVPlugins.PoiDBReporter
             proxy.api_req_kousyou_createitem.TryParse<kcsapi_createitem>().Subscribe(x => this.CreateItemEvent(x.Data, x.Request));
             proxy.api_req_kousyou_createship.TryParse<kcsapi_createship>().Subscribe(x => this.CreateShipEvent(x.Request));
             proxy.api_get_member_kdock.TryParse<kcsapi_kdock[]>().Subscribe(x => this.KDockEvent(x.Data));
+            proxy.ApiSessionSource.Where(s => s.PathAndQuery.StartsWith("/kcsapi/api_get_member/mapinfo")).TryParse<kcsapi_mst_mapinfo[]>()
+                .Subscribe(x => this.mapinfo = x.Data);
+            proxy.api_req_sortie_battleresult.TryParse<kcsapi_battleresult>().Subscribe(x => this.BattleResultEvent(x.Data));
+            proxy.api_req_combined_battle_battleresult.TryParse<kcsapi_battleresult>().Subscribe(x => this.BattleResultEvent(x.Data));
+            proxy.api_req_map_start.TryParse<map_start_next>().Subscribe(x => this.StartNextEvent(x.Data));
+            proxy.ApiSessionSource.Where(x => x.PathAndQuery == "/kcsapi/api_req_map/next")
+                .TryParse<map_start_next>().Subscribe(x => this.StartNextEvent(x.Data));
+            proxy.api_req_sortie_battle.TryParse<api_battle>().Subscribe(x => this.BattleEvent(x.Data));
+            proxy.api_req_combined_battle_battle.TryParse<api_battle>().Subscribe(x => this.BattleEvent(x.Data));
+            proxy.api_req_combined_battle_airbattle.TryParse<api_battle>().Subscribe(x => this.BattleEvent(x.Data));
         }
-
-
         private async void ReportAsync(object v, DataContractJsonSerializer Serializer,string APIName)
         {
             HttpWebRequest wrq = WebRequest.Create($"http://{SERVER_HOSTNAME}/api/report/v2/{APIName}") as HttpWebRequest;
@@ -74,7 +87,6 @@ namespace Huoyaoyuan.KCVPlugins.PoiDBReporter
                 res.successful = (data.api_create_flag != 0);
                 res.teitokuLv = KanColleClient.Current.Homeport.Admiral.Level;
                 res.itemId = res.successful ? data.api_slot_item.api_slotitem_id : int.Parse(data.api_fdata.Split(',')[1]);
-                res.origin = UAString;
                 ReportAsync(res, CreateItemSerializer, "create_item");
             }
         }
@@ -102,6 +114,33 @@ namespace Huoyaoyuan.KCVPlugins.PoiDBReporter
                 ReportAsync(createship, CreateShipSerializer, "create_ship");
             }
             WaitForKDock = false;
+        }
+        void StartNextEvent(map_start_next data)
+        {
+            dropship = new DropShip();
+            dropship.mapId = data.api_maparea_id * 10 + data.api_mapinfo_no;
+            dropship.cellId = data.api_no;
+            dropship.isBoss = (data.api_event_id == 5);
+            WaitForBattleResult = true;
+        }
+        void BattleEvent(api_battle data)
+        {
+            dropship.enemyFormation = data.api_formation[1];
+        }
+        void BattleResultEvent(kcsapi_battleresult data)
+        {
+            if (!WaitForBattleResult) return;
+            if (data.api_get_ship == null) return;
+            dropship.shipId = data.api_get_ship.api_ship_id;
+            dropship.enemy = data.api_enemy_info.api_deck_name;
+            dropship.quest = data.api_quest_name;
+            dropship.mapLv = mapinfo.Where(x => x.api_id == dropship.mapId).First().api_level;
+            dropship.rank = data.api_win_rank;
+            dropship.teitokuLv = KanColleClient.Current.Homeport.Admiral.Level;
+            dropship.enemyShips = new int[6];
+            Array.Copy(data.api_ship_id, 1, dropship.enemyShips, 0, 6);
+            ReportAsync(dropship, DropShipSerializer, "drop_ship");
+            WaitForBattleResult = false;
         }
     }
 }

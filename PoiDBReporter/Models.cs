@@ -10,7 +10,6 @@ namespace Huoyaoyuan.KCVPlugins.PoiDBReporter.Models
         public int itemId;
         public int teitokuLv;
         public bool successful;
-        public string origin;
     }
     [Serializable]
     struct CreateShip
@@ -22,5 +21,20 @@ namespace Huoyaoyuan.KCVPlugins.PoiDBReporter.Models
         public int highspeed;
         public int teitokuLv;
         public bool largeFlag;
+    }
+    [Serializable]
+    struct DropShip
+    {
+        public int shipId;
+        public int mapId;
+        public string quest;
+        public int cellId;
+        public string enemy;
+        public string rank;
+        public bool isBoss;
+        public int teitokuLv;
+        public int mapLv;
+        public int[] enemyShips;
+        public int enemyFormation;
     }
 }
