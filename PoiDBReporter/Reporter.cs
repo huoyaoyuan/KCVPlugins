@@ -135,8 +135,7 @@ namespace Huoyaoyuan.KCVPlugins.PoiDBReporter
         void BattleResultEvent(kcsapi_battleresult data)
         {
             if (!WaitForBattleResult) return;
-            if (data.api_get_ship == null) return;
-            dropship.shipId = data.api_get_ship.api_ship_id;
+            dropship.shipId = (data.api_get_ship == null) ? -1 : data.api_get_ship.api_ship_id;
             dropship.enemy = data.api_enemy_info.api_deck_name;
             dropship.quest = data.api_quest_name;
             dropship.mapLv = mapinfo.Where(x => x.api_id == dropship.mapId).First().api_level;
